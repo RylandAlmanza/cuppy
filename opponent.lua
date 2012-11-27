@@ -1,4 +1,4 @@
-function create_player(x, y, character)
+function create_opponent(x, y, character)
     -- Return player table
     return {
         x = x,
@@ -8,15 +8,15 @@ function create_player(x, y, character)
         direction = RIGHT,
         node = 1,
         destination = nil,
-        walking = false,
+        walking = true,
         walk = function(self)
-            -- Move the player towards destination on the x-axis
+            -- Move the opponent towards destination on the x-axis
             if self.x < self.destination.x then
                 self.x = self.x + 4
             elseif self.x > self.destination.x then
                 self.x = self.x - 4
             end
-            -- Move the player towards destination on the y-axis
+            -- Move the opponent towards destination on the y-axis
             if self.y < self.destination.y then
                 self.y = self.y + 4
             elseif self.y > self.destination.y then

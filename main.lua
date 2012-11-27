@@ -1,8 +1,33 @@
 require("constants")
 require("general-utils")
 require("world")
-require("player")
-require("enemy")
+require("opponent")
+
+function random_enemy()
+    local enemy_character = math.random(#sprites)
+    local enemy_node = 0
+    if player.node == 1 then
+        enemy_node = #world[player.position].nodes
+    else
+        enemy_node = 1
+    end
+    local enemy_x = world[player.position].nodes[enemy_node].x
+    local enemy_y = world[player.position].nodes[enemy_node].y
+    local enemy = create_opponent(enemy_x, enemy_y, enemy_character)
+    enemy.direction = opposite_direction(player.direction)
+    local enemy_destination = {}
+    if enemy.direction == RIGHT then
+        enemy_destination = world[player.position].nodes[enemy_node + 1]
+    else
+        enemy_destination = world[player.position].nodes[enemy_node - 1]
+    end
+    enemy.position = player.position
+    enemy.node = enemy_node
+    enemy.destination = enemy_destination
+
+    return enemy
+end
+    
 
 function love.load()
     -- Resize window
@@ -52,60 +77,85 @@ function love.load()
     -- Create player
     local player_x = world[1].nodes[1].x
     local player_y = world[1].nodes[1].y
-    player = create_player(player_x, player_y, GUY)
+    player = create_opponent(player_x, player_y, GUY)
     player.destination = world[1].nodes[2]
     -- Create enemy
-    --enemy = create_enemy()
+    enemy = random_enemy()
+end
+
+function update_opponent(opponent)
+    -- If the opponent has not yet reached the current destination:
+    if opponent.walking == true then
+        -- Move the opponent towards the current destination
+        opponent:walk()
+        -- If the opponent has reached the current destination:
+        if opponent:reached_destination() then
+            if opponent.direction == RIGHT then
+                -- If the opponent is not at the end of the area:
+                if opponent.node + 1 < #world[opponent.position].nodes then
+                    opponent.node = opponent.node + 1
+                -- If the opponent is at the end of the area:
+                else
+                    -- If the opponent is not in the last area of the world:
+                    if opponent.position < #world then
+                        opponent.position = opponent.position + 1
+                        opponent.node = 1
+                        enemy = random_enemy()
+                    -- If the opponent is in the last area of thw world:
+                    else
+                        opponent.node = opponent.node + 1
+                        opponent.walking = false
+                    end
+                    --opponent.walking = false
+                end
+                -- If the opponent coming from the left side is supposed to stop
+                -- and fight here, stop the opponent to fight.
+                if world[opponent.position].nodes[opponent.node].properties.fight ==
+                   "left" then
+                    opponent.walking = false
+                -- If the opponent coming from the left side is not supposed to
+                -- stop and fight here, continue.
+                else
+                    opponent.destination = world[opponent.position].nodes[opponent.node + 1]
+                end
+            elseif opponent.direction == LEFT then
+                -- If the opponent is not at the beginning of the area:
+                if opponent.node - 1 > 1 then
+                    opponent.node = opponent.node - 1
+                -- If the opponent is at the end of the area:
+                else
+                    -- If the opponent is not in the first area of the world:
+                    if opponent.position - 1 > 0 then
+                        opponent.position = opponent.position - 1
+                        opponent.node = #world[opponent.position].nodes
+                        enemy = random_enemy()
+                    -- If the opponent is in the first area of thw world:
+                    else
+                        opponent.node = opponent.node - 1
+                        opponent.walking = false
+                    end
+                    --opponent.walking = false
+                end
+                -- If the opponent coming from the right side is supposed to stop
+                -- and fight here, stop the opponent to fight.
+                if world[opponent.position].nodes[opponent.node].properties.fight ==
+                   "right" then
+                    opponent.walking = false
+                -- If the opponent coming from the right side is not supposed to
+                -- stop and fight here, continue.
+                else
+                    opponent.destination = world[opponent.position].nodes[opponent.node - 1]
+                end
+            end
+            opponent.x = world[opponent.position].nodes[opponent.node].x
+            opponent.y = world[opponent.position].nodes[opponent.node].y
+        end
+    end
 end
 
 function love.update()
-    -- If the player has not yet reached the current destination:
-    if player.walking == true then
-        -- Move the player towards the current destination
-        player:walk()
-        -- If the player has reached the current destination:
-        if player:reached_destination() then
-            if player.direction == RIGHT then
-                if player.node + 1 < #world[player.position].nodes then
-                    player.node = player.node + 1
-                else
-                    if player.position < #world then
-                        player.position = player.position + 1
-                        player.node = 1
-                    else
-                        player.node = player.node + 1
-                    end
-                    player.walking = false
-                end
-                if world[player.position].nodes[player.node].properties.fight ==
-                   "left" then
-                    player.walking = false
-                else
-                    player.destination = world[player.position].nodes[player.node + 1]
-                end
-            elseif player.direction == LEFT then
-                if player.node - 1 > 1 then
-                    player.node = player.node - 1
-                else
-                    if player.position - 1 > 0 then
-                        player.position = player.position - 1
-                        player.node = #world[player.position].nodes
-                    else
-                        player.node = player.node - 1
-                    end
-                    player.walking = false
-                end
-                if world[player.position].nodes[player.node].properties.fight ==
-                   "right" then
-                    player.walking = false
-                else
-                    player.destination = world[player.position].nodes[player.node - 1]
-                end
-            end
-            player.x = world[player.position].nodes[player.node].x
-            player.y = world[player.position].nodes[player.node].y
-        end
-    end
+    update_opponent(player)
+    update_opponent(enemy)
 end
 
 function love.draw()
@@ -134,12 +184,12 @@ function love.draw()
         player.y
     )
     -- Draw enemy
-    --love.graphics.drawq(
-    --    sprite_sheet,
-    --    sprites[enemy.character][enemy.direction],
-    --    enemy.x,
-    --    enemy.y
-    --)
+    love.graphics.drawq(
+        sprite_sheet,
+        sprites[enemy.character][enemy.direction],
+        enemy.x,
+        enemy.y
+    )
 end
 
 function love.keypressed(key)
