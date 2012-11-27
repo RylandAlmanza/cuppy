@@ -69,8 +69,12 @@ function love.update()
                 if player.node + 1 < #world[player.position].nodes then
                     player.node = player.node + 1
                 else
-                    player.position = player.position + 1
-                    player.node = 1
+                    if player.position < #world then
+                        player.position = player.position + 1
+                        player.node = 1
+                    else
+                        player.node = player.node + 1
+                    end
                     player.walking = false
                 end
                 if world[player.position].nodes[player.node].properties.fight ==
@@ -83,8 +87,12 @@ function love.update()
                 if player.node - 1 > 1 then
                     player.node = player.node - 1
                 else
-                    player.position = player.position + 1
-                    player.node = #world[player.position].nodes
+                    if player.position - 1 > 0 then
+                        player.position = player.position - 1
+                        player.node = #world[player.position].nodes
+                    else
+                        player.node = player.node - 1
+                    end
                     player.walking = false
                 end
                 if world[player.position].nodes[player.node].properties.fight ==
@@ -140,15 +148,21 @@ function love.keypressed(key)
         -- right, and move the player to the next area. Then, create a new enemy.
         if key == "right" then
             player.direction = RIGHT
-            player.destination = world[player.position].nodes[player.node + 1]
-            player.walking = true
+            if player.node < #world[player.position].nodes or
+               player.position < #world then
+                player.destination = world[player.position].nodes[player.node + 1]
+                player.walking = true
+            end
         end
         -- If the left arrow key is pressed, change the player's direction to left,
         -- and move the player to the next area. Then, create a new enemy.
         if key == "left" then
             player.direction = LEFT
-            player.destination = world[player.position].nodes[player.node - 1]
-            player.walking = true
+            if player.node > 1 or
+               player.position > 1 then
+                player.destination = world[player.position].nodes[player.node - 1]
+                player.walking = true
+            end
         end
     end
 end
