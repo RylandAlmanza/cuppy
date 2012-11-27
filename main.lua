@@ -1,62 +1,10 @@
-function render_area()
-    -- If the current area is a battle area, render the battle area map.
-    -- Currently there is only one battle area map, but eventually every battle
-    -- area will be unique
-    if world[player.position] == BATTLE then
-        for y=1,8,1 do
-            for x=1,8,1 do
-                local tile = map.layers[1].data[((y-1)*8)+x]
-                if tile > 0 then
-                    love.graphics.drawq(
-                        tile_sheet,
-                        tiles[map.layers[1].data[((y-1)*8)+x]],
-                        (x - 1) * 32,
-                        (y - 1) * 32
-                    )
-                end
-            end
-        end
-    -- If the current area is a town, create plain, flat ground.
-    elseif world[player.position] == TOWN then
-        for y=1,8,1 do
-            for x=1,8,1 do
-                if y == 8 then
-                    love.graphics.drawq(
-                        tile_sheet,
-                        tiles[2],
-                        (x - 1) * 32,
-                        (y - 1) * 32
-                    )
-                end
-            end
-        end
-    end
-end
-
-function create_enemy()
-    -- Choose random enemy type
-    local character = math.random(#sprites)
-    -- Direction should be the opposite of the player's direction
-    local direction = LEFT
-    if player.direction == RIGHT then
-        direction = LEFT
-    elseif player.direction == LEFT then
-        direction = RIGHT
-    end
-
-    enemy = {
-        character = character,
-        position = player.position,
-        direction = direction
-    }
-end
+require("constants")
+require("general-utils")
+require("world")
+require("player")
+require("enemy")
 
 function love.load()
-    -- General constants
-    GAME_WIDTH = 256
-    GAME_HEIGHT = 256
-    SPRITE_SIZE = 32
-
     -- Resize window
     love.graphics.setMode(GAME_WIDTH, GAME_HEIGHT)
 
@@ -64,106 +12,143 @@ function love.load()
     map = require("map")
 
     -- Declare sprite quads
-    RIGHT = 1
-    LEFT = 2
-    GUY = 1
-    SKELETON = 2
-    FISH = 3
     sprite_sheet = love.graphics.newImage("sprites-scaled.png")
     sprites = {}
     -- Guy sprites
     sprites[GUY] = {}
-    sprites[GUY][RIGHT] = love.graphics.newQuad( 0, 0, 32, 32, 68, 104 )
-    sprites[GUY][LEFT] = love.graphics.newQuad( 35, 0, 32, 32, 68, 104 )
+    sprites[GUY][RIGHT] = love.graphics.newQuad( 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
+    sprites[GUY][LEFT] = love.graphics.newQuad( 35, 0, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
     -- Skeleton sprites
     sprites[SKELETON] = {}
-    sprites[SKELETON][RIGHT] = love.graphics.newQuad( 0, 35, 32, 32, 68, 104 )
-    sprites[SKELETON][LEFT] = love.graphics.newQuad( 35, 35, 32, 32, 68, 104 )
+    sprites[SKELETON][RIGHT] = love.graphics.newQuad( 0, 35, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
+    sprites[SKELETON][LEFT] = love.graphics.newQuad( 35, 35, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
     -- Fish sprites
     sprites[FISH] = {}
-    sprites[FISH][RIGHT] = love.graphics.newQuad( 0, 70, 32, 32, 68, 104 )
-    sprites[FISH][LEFT] = love.graphics.newQuad( 35, 70, 32, 32, 68, 104 )
+    sprites[FISH][RIGHT] = love.graphics.newQuad( 0, 70, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
+    sprites[FISH][LEFT] = love.graphics.newQuad( 35, 70, SPRITE_WIDTH, SPRITE_HEIGHT, 68, 104 )
 
     -- Store tile quads in an array
     tile_sheet = love.graphics.newImage(map.tilesets[1].image)
     tiles = {}
-    for y=1,3,1 do
+    for y=1,6,1 do
         for x=1,2,1 do
             table.insert(
                 tiles,
                 love.graphics.newQuad(
-                    ((x - 1) * 32) + (4 * (x-1)),
-                    ((y - 1) * 32) + (4 * (y-1)),
-                    32,
-                    32,
+                    ((x - 1) * SPRITE_WIDTH) + (4 * (x-1)),
+                    ((y - 1) * SPRITE_HEIGHT) + (4 * (y-1)),
+                    SPRITE_WIDTH,
+                    SPRITE_HEIGHT,
                     68,
-                    104
+                    212
                 )
             )
         end
     end
 
-    -- Create world
-    BATTLE = 0
-    TOWN = 1
-    world = {TOWN, BATTLE, BATTLE, BATTLE, TOWN, BATTLE, BATTLE, TOWN}
+    -- Load world
+    world = load_world(require("map"))
 
     -- Create player
-    player = { character = GUY, position = 1, direction = RIGHT}
-    create_enemy()
+    local player_x = world[1].nodes[1].x
+    local player_y = world[1].nodes[1].y
+    player = create_player(player_x, player_y, GUY)
+    player.destination = world[1].nodes[2]
+    -- Create enemy
+    --enemy = create_enemy()
+end
+
+function love.update()
+    -- If the player has not yet reached the current destination:
+    if player.walking == true then
+        -- Move the player towards the current destination
+        player:walk()
+        -- If the player has reached the current destination:
+        if player:reached_destination() then
+            if player.direction == RIGHT then
+                if player.node + 1 < #world[player.position].nodes then
+                    player.node = player.node + 1
+                else
+                    player.position = player.position + 1
+                    player.node = 1
+                    player.walking = false
+                end
+                if world[player.position].nodes[player.node].properties.fight ==
+                   "left" then
+                    player.walking = false
+                else
+                    player.destination = world[player.position].nodes[player.node + 1]
+                end
+            elseif player.direction == LEFT then
+                if player.node - 1 > 1 then
+                    player.node = player.node - 1
+                else
+                    player.position = player.position + 1
+                    player.node = #world[player.position].nodes
+                    player.walking = false
+                end
+                if world[player.position].nodes[player.node].properties.fight ==
+                   "right" then
+                    player.walking = false
+                else
+                    player.destination = world[player.position].nodes[player.node - 1]
+                end
+            end
+            player.x = world[player.position].nodes[player.node].x
+            player.y = world[player.position].nodes[player.node].y
+        end
+    end
 end
 
 function love.draw()
     -- Clear screen
     love.graphics.clear()
     -- Render current area map
-    render_area()
-
-    -- If the player is facing right (meaning the player came from the left,)
-    -- place the player on the left side of the area map. Otherwise, place the
-    -- player on the right side.
-    local player_x = 0
-    local enemy_x = 0
-    if player.direction == RIGHT then
-        player_x = 64
-        enemy_x = 160
-    elseif player.direction == LEFT then
-        player_x = 160
-        enemy_x = 64
+    for y=1,8,1 do
+        for x=1,8,1 do
+            local tile = world[player.position].tiles[((y-1)*8)+x]
+            if tile > 0 then
+                love.graphics.drawq(
+                    tile_sheet,
+                    tiles[tile],
+                    (x - 1) * SPRITE_WIDTH,
+                    (y - 1) * SPRITE_HEIGHT
+                )
+            end
+        end
     end
 
     -- Draw player
     love.graphics.drawq(
         sprite_sheet,
         sprites[player.character][player.direction],
-        player_x,
-        192
+        player.x,
+        player.y
     )
     -- Draw enemy
-    love.graphics.drawq(
-        sprite_sheet,
-        sprites[enemy.character][enemy.direction],
-        enemy_x,
-        192
-    )
+    --love.graphics.drawq(
+    --    sprite_sheet,
+    --    sprites[enemy.character][enemy.direction],
+    --    enemy.x,
+    --    enemy.y
+    --)
 end
 
 function love.keypressed(key)
-    -- If the right arrow key is pressed, change the player's direction to
-    -- right, and move the player to the next area. Then, create a new enemy.
-    if (key == "right") then
-        if player.position < #world then
+    if player.walking == false then
+        -- If the right arrow key is pressed, change the player's direction to
+        -- right, and move the player to the next area. Then, create a new enemy.
+        if key == "right" then
             player.direction = RIGHT
-            player.position = player.position + 1
-            create_enemy()
+            player.destination = world[player.position].nodes[player.node + 1]
+            player.walking = true
         end
-    -- If the left arrow key is pressed, change the player's direction to left,
-    -- and move the player to the next area. Then, create a new enemy.
-    elseif (key == "left") then
-        if player.position > 1 then
+        -- If the left arrow key is pressed, change the player's direction to left,
+        -- and move the player to the next area. Then, create a new enemy.
+        if key == "left" then
             player.direction = LEFT
-            player.position = player.position - 1
-            create_enemy()
+            player.destination = world[player.position].nodes[player.node - 1]
+            player.walking = true
         end
     end
 end

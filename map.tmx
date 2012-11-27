@@ -1,11 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" width="8" height="8" tilewidth="32" tileheight="32">
  <tileset firstgid="1" name="tiles" tilewidth="32" tileheight="32" spacing="4">
-  <image source="tiles-scaled.png" width="68" height="104"/>
+  <image source="tiles-scaled.png" width="68" height="212"/>
  </tileset>
  <layer name="Tile Layer 1" width="8" height="8">
   <data encoding="base64" compression="zlib">
-   eJxjYBjagBmPOAsQMyFhVihGFgMABFQAIQ==
+   eJxjYBjagBmPOAsQMyFhdihGFgMABJwAJQ==
   </data>
  </layer>
+ <objectgroup name="Object Layer 1" width="8" height="8">
+  <object name="1" type="node" x="0" y="192" width="32" height="32"/>
+  <object name="2" type="node" x="64" y="192" width="32" height="32">
+   <properties>
+    <property name="fight" value="left"/>
+   </properties>
+  </object>
+  <object name="3" type="node" x="160" y="192" width="32" height="32">
+   <properties>
+    <property name="fight" value="right"/>
+   </properties>
+  </object>
+  <object name="4" type="node" x="224" y="192" width="32" height="32"/>
+ </objectgroup>
+ <layer name="Tile Layer 2" width="8" height="8">
+  <data encoding="base64" compression="zlib">
+   eJxjYCAMeAjIcwMxEw4Mkyekn1byMHdw4MAAMTQAhA==
+  </data>
+ </layer>
+ <objectgroup name="Object Layer 2" width="8" height="8">
+  <object name="1" x="0" y="192" width="32" height="32"/>
+  <object name="2" x="32" y="192" width="32" height="32"/>
+  <object name="3" x="32" y="32" width="32" height="32"/>
+  <object name="4" x="64" y="32" width="32" height="32">
+   <properties>
+    <property name="fight" value="left"/>
+   </properties>
+  </object>
+  <object name="5" x="160" y="32" width="32" height="32">
+   <properties>
+    <property name="fight" value="right"/>
+   </properties>
+  </object>
+  <object name="6" x="224" y="32" width="32" height="32"/>
+ </objectgroup>
 </map>
